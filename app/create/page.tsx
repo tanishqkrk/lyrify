@@ -3,7 +3,7 @@
 // !TODO: Write types for spotify data.
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import Sample from "@/data/SampleData.json";
 import Image from "next/image";
 import DEBOUNCE from "@/utils/DEBOUNCE";
@@ -12,13 +12,15 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import useTrack from "@/context/TrackContext";
 import { TrackData } from "@/types/TrackData";
+
 export default function Create() {
   const [query, setQuery] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const [songs, setSongs] = useState([]);
   const debouncedSearch = DEBOUNCE(async (e: string) => {
     if (e === "") {
       setSongs([]);
+      setLoading(false);
     } else {
       const data = await (
         await fetch("/api/fetchSpotifyData", {
@@ -29,9 +31,9 @@ export default function Create() {
         })
       ).json();
       setSongs(data);
+      setLoading(false);
     }
-  }, 300);
-
+  }, 400);
   return (
     <div className="min-h-screen bg-[#121212] text-white px-6 py-16">
       <div className="max-w-5xl mx-auto">
@@ -45,20 +47,32 @@ export default function Create() {
             placeholder="Type a song name..."
             value={query}
             onChange={async (e) => {
+              setLoading(true);
               debouncedSearch(e.target.value);
               setQuery(e.target.value);
             }}
             className="pl-12  bg-[#1e1e1e] text-white border-none focus:ring-2 focus:ring-green-500 rounded-3xl py-8"
           />
         </div>
+        {loading && (
+          <div className="h-36">
+            <div className="">
+              <div className="flex flex-col items-center space-y-4">
+                <Loader2 className="h-10 w-10 animate-spin text-theme-green" />
+                <p className="text-theme-green text-lg">Getting music</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {!loading && (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {(songs as any)?.tracks?.items.map((song: any) => (
+              <TrackCard key={song.id} track={song} />
+            ))}
+          </div>
+        )}
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {(songs as any)?.tracks?.items.map((song: any) => (
-            <TrackCard key={song.id} track={song} />
-          ))}
-        </div>
-
-        {!query && (
+        {!query && !loading && (
           <p className="text-gray-500 mt-12 text-center">Search for a song</p>
         )}
       </div>
