@@ -1,12 +1,13 @@
 "use client";
 import useTrack from "@/context/TrackContext";
 import { TrackData } from "@/types/TrackData";
-import { Loader2, X } from "lucide-react";
+import { Download, Loader2, X } from "lucide-react";
 import Image from "next/image";
 // !TODO: Write types for spotify track data.
 import { useEffect, useMemo, useRef, useState } from "react";
 // @ts-expect-error unga bunga
 import ColorThief from "colorthief";
+import * as htmlToImage from "html-to-image";
 import { useRouter } from "next/navigation";
 export default function Track() {
   const { track } = useTrack()!;
@@ -41,6 +42,9 @@ export default function Track() {
     })();
   }, []);
 
+  const [background, setBackground] = useState("");
+  const [foreground, setGround] = useState("");
+
   if (!trackData) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background bg-opacity-80 backdrop-blur-sm">
@@ -56,7 +60,8 @@ export default function Track() {
       <div>
         <Image
           onLoad={(e) => {
-            const color = colorThief.getColor(thumbnail?.current);
+            const color = colorThief.getColor(thumbnail?.current, [2]);
+            console.log(color);
             const hex = rgbaToHex(color[0], color[1], color[2], 1);
             setTheme(hex);
           }}
@@ -77,16 +82,35 @@ export default function Track() {
               <X size={32}></X>
             </button>
             <div className="text-xl font-semibold">Edit Lyrics</div>
-            <div className="w-6"></div>
+            <button
+              onClick={() => {
+                if (document.querySelector(".view")) {
+                  // @DOCS:https://github.com/bubkoo/html-to-image
+                  htmlToImage
+                    // @ts-expect-error unga bunga
+                    .toJpeg(document.querySelector(".view"), { quality: 1 })
+                    .then(function (dataUrl) {
+                      let link = document.createElement("a");
+                      link.download = trackData.name + ".jpeg";
+                      link.href = dataUrl;
+                      link.click();
+                    });
+                }
+              }}
+              className=""
+            >
+              <Download size={32}></Download>
+            </button>
           </div>
-          <div className="view  flex justify-center items-center h-full ">
+          <div className="  flex justify-center items-center h-full ">
             <div
               style={{
                 height: "100%",
                 width: "100%",
+                aspectRatio: "16 / 9",
                 background: `linear-gradient(180deg, ${theme} 0%, black 100%)`,
               }}
-              className="justify-center items-center flex rounded-lg"
+              className="view justify-center items-center flex rounded-lg"
             >
               <div
                 style={{ background: theme }}
@@ -105,7 +129,7 @@ export default function Track() {
                     <div className="">{trackData.name}</div>
                     <div className="text-sm font-thin">
                       {trackData.artists.map((a) => (
-                        <>{a.name} </>
+                        <span key={a.id}>{a.name} </span>
                       ))}
                     </div>
                   </div>
